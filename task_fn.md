@@ -152,7 +152,7 @@ locust -f locust/tasks/public_read.py,locust/tasks/auth_flows.py --config locust
 * [x] Chạy được demo API local, **có ảnh chụp xác nhận**.
 * [x] `docs/endpoints.md` đầy đủ thông tin endpoint.
 * [x] `docs/test_plan.md` (**mục tiêu, KPI/SLO, mô hình tải, an toàn**).
-* [x] `docs/stress_testcases.*` (**ramp, step-stress, spike – có pass/fail rõ**).
+* [ ] `docs/stress_testcases.*` (**ramp, step-stress, spike – có pass/fail rõ**).
 * [ ] **Script Locust** có **validation hợp lệ** (**HTTP code + field**).
 * [ ] Báo cáo `ramp.html`, `stress.html`, `spike.html`, `soak.html` + **CSV** tương ứng.
 * [ ] `docs/executive_summary.*` **1 trang** (nêu **breakpoint** & **khuyến nghị**).
