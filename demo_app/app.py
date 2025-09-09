@@ -7,6 +7,9 @@ USERS = {
     "alice": "alice123",
     "bob": "bob123",
     "charlie": "charlie123",
+    "logan": "logan123",
+    "stark": "stark123",
+    "tobey": "tobey123"
 }
 
 TOKENS = {}
