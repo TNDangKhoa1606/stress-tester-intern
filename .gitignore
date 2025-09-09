@@ -10,3 +10,7 @@ reports/
 
 # OS
 .DS_Store
+
+# Personal/Internal Docs
+user_rules.md
+task_fn.md
