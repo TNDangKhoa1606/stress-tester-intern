@@ -62,12 +62,13 @@ Bao gồm chuỗi `login` -> `add_to_cart` -> `checkout`.
 
 ### 4.2. Các Kịch Bản Test
 
+*   **Baseline Test (Sanity Check):** Chạy tải nhẹ ổn định (ví dụ: 10 VU trong 5 phút) để thiết lập một đường cơ sở (baseline) về hiệu năng hệ thống trước khi bắt đầu các bài test tải cao.
 *   **Ramp-up Test (Khởi động):** Tăng dần từ 0 đến 60 người dùng ảo (VU) trong 5 phút để "làm nóng" hệ thống và kiểm tra hiệu năng ở tải cơ bản.
 *   **Step-Stress Test (Tìm điểm gãy):** Tăng tải theo từng bậc để xác định chính xác breakpoint. Sẽ thực hiện 2 biến thể:
-    *   **Theo Virtual User (VU):** Tăng bậc 60 -> 90 -> 120 VU, mỗi bậc giữ trong 8 phút.
-    *   **Theo Arrival Rate (CAR):** Tăng bậc 50 -> 100 -> 150 -> 180 -> 210 RPS (requests per second), mỗi bậc giữ trong 8 phút.
-*   **Spike Test (Kiểm tra phục hồi):** Tăng đột ngột từ 0 lên 200 VU trong 30 giây, giữ tải trong 2 phút, sau đó giảm về 20 VU và theo dõi thời gian hệ thống phục hồi về trạng thái ổn định (p95 < 800ms).
-*   **Soak Test (Kiểm tra độ bền - khuyến nghị):** Chạy tải ổn định ở mức ~80% breakpoint (ví dụ: 120-150 RPS) trong 30-60 phút để phát hiện các vấn đề về rò rỉ bộ nhớ, connection pool, hoặc suy giảm hiệu năng theo thời gian.
+    *   **Theo Virtual User (VU):** Tăng bậc 60 -> 90 -> 120 VU, mỗi bậc giữ trong 8 phút (2 phút đầu để tải ổn định, 6 phút sau để đo lường).
+    *   **Theo Arrival Rate (RPS):** Tăng bậc 50 -> 100 -> 150 -> 180 -> 210 RPS, mỗi bậc giữ trong 8 phút (2 phút đầu để tải ổn định, 6 phút sau để đo lường).
+*   **Spike Test (Kiểm tra phục hồi):** Tăng đột ngột từ 0 lên 200 VU trong 30 giây, giữ tải trong 2 phút, sau đó giảm về 20 VU. **Pass** nếu hệ thống phục hồi (p95 < 800ms) trong vòng **≤ 2 phút** sau khi giảm tải.
+*   **Soak Test (Kiểm tra độ bền):** Chạy tải ổn định ở mức ~80% breakpoint trong 30-60 phút. Thu thập các chỉ số (đặc biệt là Memory/GC) mỗi 5 phút để phát hiện các vấn đề về rò rỉ tài nguyên hoặc suy giảm hiệu năng theo thời gian (latency drift).
 
 
 ## 5. Dữ Liệu & Môi Trường Test (Data & Environment)
@@ -88,6 +89,7 @@ Bao gồm chuỗi `login` -> `add_to_cart` -> `checkout`.
 *   **Client-side (Locust):**
     *   Thu thập các chỉ số: RPS, response time (p50, p95, p99), error rate.
     *   Lưu lại báo cáo HTML, CSV, và các file log.
+    *   Lưu lại các biểu đồ chính để phân tích trực quan: Latency-vs-Load, Error-vs-Load, và S-curve throughput.
 *   **Server-side:**
     *   Thu thập các chỉ số hệ thống: CPU, Memory, I/O, Network.
     *   Thu thập các chỉ số ứng dụng (APM): latency của từng thành phần, DB queries (qps, slow queries), cache hit ratio, tình trạng connection/thread pool.
@@ -109,7 +111,7 @@ Bao gồm chuỗi `login` -> `add_to_cart` -> `checkout`.
 *   **Breakpoint:** Được xác định là bậc tải đầu tiên mà tại đó một trong các điều kiện sau xảy ra:
     *   `p95 response time` vượt ngưỡng SLO trong 3 phút liên tiếp.
     *   `Error rate` vượt ngưỡng SLO trong 1 phút liên tiếp.
-*   **Thời gian phục hồi (Recovery Time):** Thời gian (tính bằng giây) để hệ thống quay trở lại ngưỡng SLO sau khi kết thúc một spike.
+*   **Thời gian phục hồi (Recovery Time):** Thời gian (tính bằng giây) để p95 response time quay trở lại ngưỡng SLO sau khi tải đột biến (spike) kết thúc và giảm về mức cơ bản.
 
 ### 8.2. Tiêu Chí Pass/Fail Chung
 
