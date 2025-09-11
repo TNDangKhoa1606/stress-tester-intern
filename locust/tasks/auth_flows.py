@@ -1,11 +1,16 @@
 from locust import FastHttpUser, task, between, events
 import os, random, csv, itertools
 
+# Build an absolute path to the data.csv file to ensure the script runs correctly from any location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(SCRIPT_DIR, "..", "common", "data.csv")
+
 try:
-    with open("locust/common/data.csv", "r") as f:
+    with open(DATA_FILE, "r") as f:
+        # Create a cycling iterator from the CSV data, so we don't run out of users
         user_credentials = itertools.cycle(list(csv.DictReader(f)))
 except FileNotFoundError:
-    print("QUAN TRỌNG: Không tìm thấy file data.csv. Luồng xác thực sẽ thất bại.")
+    print(f"CRITICAL: Data file not found at '{DATA_FILE}'. Auth flow will fail.")
     user_credentials = itertools.cycle([{"username": "error", "password": "error"}])
 
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
@@ -15,31 +20,29 @@ class PrivateUser(FastHttpUser):
     wait_time = between(0.3, 1.2)
 
     def on_start(self):
-        # Lấy tài khoản tiếp theo từ iterator cho người dùng ảo này
+        # Get the next credentials from the iterator for this virtual user instance
         credentials = next(user_credentials)
         self.username = credentials["username"]
         self.password = credentials["password"]
 
-        # Khởi tạo các thuộc tính riêng cho instance này
+        # Initialize instance-specific attributes
         self.token = None
         self.headers = {"Content-Type": "application/json"}
 
-        r = self.client.post(
+        with self.client.post(
             f"{BASE_URL}/auth/token/login",
             json={"username": self.username, "password": self.password},
             name="POST /auth/token/login",
             timeout=5,
-        )
-        if r.status_code == 200 and "auth_token" in r.json():
-            self.token = r.json()["auth_token"]
-            self.headers["Authorization"] = f"Token {self.token}"
-        else:
-            # events.request_failure.fire(
-            #     request_type="POST", name="login_failed", response_time=0, response=r
-            # )
-
-            # Nếu đăng nhập thất bại, dừng người dùng ảo này lại vì các task sau cũng sẽ lỗi
-            self.stop()
+            catch_response=True,
+        ) as resp:
+            if resp.status_code == 200 and "auth_token" in resp.json():
+                self.token = resp.json()["auth_token"]
+                self.headers["Authorization"] = f"Token {self.token}"
+            else:
+                resp.failure(f"Login failed for user '{self.username}' with status {resp.status_code} - {resp.text}")
+                # Dừng user ảo này lại vì không có token thì các task sau cũng sẽ lỗi
+                self.stop()
 
     @task(2)
     def view_profile(self):
@@ -53,9 +56,7 @@ class PrivateUser(FastHttpUser):
             catch_response=True,
         ) as resp:
             if resp.status_code != 200 or "username" not in resp.json():
-                resp.failure(
-                    f"Unexpected response {resp.status_code} or missing username field"
-                )
+                resp.failure(f"Unexpected response {resp.status_code} or missing username field")
 
     @task(2)
     def add_to_cart(self):
@@ -70,9 +71,7 @@ class PrivateUser(FastHttpUser):
             catch_response=True,
         ) as resp:
             if resp.status_code != 200 or "added" not in resp.json():
-                resp.failure(
-                    f"Unexpected response {resp.status_code} or missing added field"
-                )
+                resp.failure(f"Unexpected response {resp.status_code} or missing added field")
 
     @task(1)
     def checkout(self):
@@ -85,6 +84,4 @@ class PrivateUser(FastHttpUser):
             catch_response=True,
         ) as resp:
             if resp.status_code != 200 or "status" not in resp.json():
-                resp.failure(
-                    f"Unexpected response {resp.status_code} or missing status field"
-                )
+                resp.failure(f"Unexpected response {resp.status_code} or missing status field")

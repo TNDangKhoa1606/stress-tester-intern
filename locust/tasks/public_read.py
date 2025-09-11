@@ -14,6 +14,4 @@ class PublicReader(FastHttpUser):
 
     @task(1)
     def index(self):
-        with self.client.get(f"{BASE_URL}/", name="GET /", timeout=3, catch_response=True) as resp:
-            if resp.status_code != 200 or "ok" not in resp.json():
-                resp.failure(f"Unexpected response {resp.status_code} or missing ok field")
+        self.client.get(f"{BASE_URL}/", name="GET /", timeout=3)

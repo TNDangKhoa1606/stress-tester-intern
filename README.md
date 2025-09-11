@@ -15,6 +15,10 @@ This repo gives your intern everything to run safe, local stress tests:
 ```bash
 docker compose up --build -d
 # API will be available at http://localhost:8000
+
+# Verify that the API is running
+curl http://localhost:8000
+# Expected output: {"ok":true}
 ```
 
 ### 3) Create a virtualenv and install Locust
@@ -56,6 +60,10 @@ locust -f locust/tasks/public_read.py,locust/tasks/auth_flows.py   --host http:/
 - `alice` / `alice123`
 - `bob` / `bob123`
 - `charlie` / `charlie123`
+- `logan` / `logan123`
+- `stark` / `stark123`
+- `tobey` / `tobey123`
+
 
 ## Workshop outline
 - Load vs Stress vs Spike vs Soak (SLO/SLA, p50/p95/p99, error rate).
