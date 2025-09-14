@@ -64,9 +64,10 @@ Bao gồm chuỗi `login` -> `add_to_cart` -> `checkout`.
 
 *   **Baseline Test (Sanity Check):** Chạy tải nhẹ ổn định (ví dụ: 10 VU trong 5 phút) để thiết lập một đường cơ sở (baseline) về hiệu năng hệ thống trước khi bắt đầu các bài test tải cao.
 *   **Ramp-up Test (Khởi động):** Tăng dần từ 0 đến 60 người dùng ảo (VU) trong 5 phút để "làm nóng" hệ thống và kiểm tra hiệu năng ở tải cơ bản.
-*   **Step-Stress Test (Tìm điểm gãy):** Tăng tải theo từng bậc để xác định chính xác breakpoint. Sẽ thực hiện 2 biến thể:
-    *   **Theo Virtual User (VU):** Tăng bậc 60 -> 90 -> 120 VU, mỗi bậc giữ trong 8 phút (2 phút đầu để tải ổn định, 6 phút sau để đo lường).
-    *   **Theo Arrival Rate (RPS):** Tăng bậc 50 -> 100 -> 150 -> 180 -> 210 RPS, mỗi bậc giữ trong 8 phút (2 phút đầu để tải ổn định, 6 phút sau để đo lường).
+*   **Step-Stress Test (Tìm điểm gãy):** Tăng tải theo từng bậc dựa trên số người dùng đồng thời (VUs) để xác định chính xác breakpoint. Cách tiếp cận này phù hợp với mô hình tải của Locust (closed model).
+    *   **Mục tiêu:** Xác định điểm bão hòa của hệ thống trước khi vi phạm SLO (ví dụ: p95 ≤ 800ms; error rate < 1%).
+    *   **Bậc tải (Concurrency-based):** Tăng dần số VUs để đạt được RPS mục tiêu một cách gián tiếp, ví dụ: 25 → 50 → 75 → 90 → 110 VU.
+    *   **Thời lượng:** Mỗi bậc chạy trong 5-8 phút, với 2-3 phút đầu để tải ổn định và phần còn lại để đo lường.
 *   **Spike Test (Kiểm tra phục hồi):** Tăng đột ngột từ 0 lên 200 VU trong 30 giây, giữ tải trong 2 phút, sau đó giảm về 20 VU. **Pass** nếu hệ thống phục hồi (p95 < 800ms) trong vòng **≤ 2 phút** sau khi giảm tải.
 *   **Soak Test (Kiểm tra độ bền):** Chạy tải ổn định ở mức ~80% breakpoint trong 30-60 phút. Thu thập các chỉ số (đặc biệt là Memory/GC) mỗi 5 phút để phát hiện các vấn đề về rò rỉ tài nguyên hoặc suy giảm hiệu năng theo thời gian (latency drift).
 

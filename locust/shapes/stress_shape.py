@@ -15,8 +15,9 @@ class StepStress(LoadTestShape):
 
     def tick(self):
         run_time = self.get_run_time()
+        cumulative_duration = 0
         for stage in self.stages:
-            if run_time < stage["duration"]:
+            cumulative_duration += stage["duration"]
+            if run_time < cumulative_duration:
                 return (stage["users"], stage["spawn_rate"])
-            run_time -= stage["duration"]
         return None

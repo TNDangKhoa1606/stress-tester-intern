@@ -38,7 +38,7 @@ class PrivateUser(FastHttpUser):
         ) as resp:
             if resp.status_code == 200 and "auth_token" in resp.json():
                 self.token = resp.json()["auth_token"]
-                self.headers["Authorization"] = f"Token {self.token}"
+                self.headers["Authorization"] = f"Bearer {self.token}"
             else:
                 resp.failure(f"Login failed for user '{self.username}' with status {resp.status_code} - {resp.text}")
                 # Dừng user ảo này lại vì không có token thì các task sau cũng sẽ lỗi
@@ -60,6 +60,8 @@ class PrivateUser(FastHttpUser):
 
     @task(2)
     def add_to_cart(self):
+        if not self.token:
+            return
         # choose random product id 1..5
         pid = random.randint(1, 5)
         with self.client.post(
@@ -75,6 +77,8 @@ class PrivateUser(FastHttpUser):
 
     @task(1)
     def checkout(self):
+        if not self.token:
+            return
         with self.client.post(
             f"{BASE_URL}/checkout",
             json={"payment_method": "visa"},
