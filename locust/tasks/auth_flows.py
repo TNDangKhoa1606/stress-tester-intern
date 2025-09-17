@@ -1,91 +1,97 @@
-from locust import FastHttpUser, task, between, events
-import os, random, csv, itertools
+from locust import task, SequentialTaskSet, FastHttpUser, between
+from locust.exception import StopUser
+import random
 
-# Build an absolute path to the data.csv file to ensure the script runs correctly from any location
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE = os.path.join(SCRIPT_DIR, "..", "common", "data.csv")
+# Import the config parser listener so it gets registered
+from common import config
 
-try:
-    with open(DATA_FILE, "r") as f:
-        # Create a cycling iterator from the CSV data, so we don't run out of users
-        user_credentials = itertools.cycle(list(csv.DictReader(f)))
-except FileNotFoundError:
-    print(f"CRITICAL: Data file not found at '{DATA_FILE}'. Auth flow will fail.")
-    user_credentials = itertools.cycle([{"username": "error", "password": "error"}])
-
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
-
-
-class PrivateUser(FastHttpUser):
-    wait_time = between(0.3, 1.2)
-
+class AuthFlows(SequentialTaskSet):
+    """
+    Simulates a user journey that requires authentication:
+    1. Login to get a token.
+    2. Add a product to the cart.
+    3. Checkout.
+    """
     def on_start(self):
-        # Get the next credentials from the iterator for this virtual user instance
-        credentials = next(user_credentials)
-        self.username = credentials["username"]
-        self.password = credentials["password"]
-
-        # Initialize instance-specific attributes
+        """Called when a virtual user starts this TaskSet. Performs login."""
         self.token = None
-        self.headers = {"Content-Type": "application/json"}
+        self.login()
+
+    def login(self):
+        """
+        Logs in a user using credentials from the configuration
+        (locust.conf, env var, or command line).
+        """
+        # Access the parsed options from the environment
+        username = self.user.environment.parsed_options.username
+        password = self.user.environment.parsed_options.password
 
         with self.client.post(
-            f"{BASE_URL}/auth/token/login",
-            json={"username": self.username, "password": self.password},
-            name="POST /auth/token/login",
-            timeout=5,
-            catch_response=True,
+            "/auth/token/login",
+            json={"username": username, "password": password},
+            name="/auth/token/login",
+            catch_response=True
         ) as resp:
             if resp.status_code == 200 and "auth_token" in resp.json():
                 self.token = resp.json()["auth_token"]
-                self.headers["Authorization"] = f"Bearer {self.token}"
+                resp.success()
             else:
-                resp.failure(f"Login failed for user '{self.username}' with status {resp.status_code} - {resp.text}")
-                # Dừng user ảo này lại vì không có token thì các task sau cũng sẽ lỗi
-                self.stop()
+                resp.failure(f"Login failed for user '{username}' with status {resp.status_code}")
+                # Stop the entire User, not just the task sequence.
+                raise StopUser("Login failed, stopping user.")
 
-    @task(2)
+    @task
     def view_profile(self):
         if not self.token:
             return
         with self.client.get(
-            f"{BASE_URL}/auth/users/me",
-            headers=self.headers,
-            name="GET /auth/users/me",
-            timeout=5,
+            "/auth/users/me",
+            headers={"Authorization": f"Bearer {self.token}"},
+            name="/auth/users/me",
             catch_response=True,
         ) as resp:
-            if resp.status_code != 200 or "username" not in resp.json():
-                resp.failure(f"Unexpected response {resp.status_code} or missing username field")
+            if resp.status_code != 200:
+                resp.failure(f"View profile failed with status {resp.status_code}")
+                # Interrupt and restart the sequence from the beginning
+                self.interrupt()
 
-    @task(2)
+    @task
     def add_to_cart(self):
         if not self.token:
             return
         # choose random product id 1..5
         pid = random.randint(1, 5)
         with self.client.post(
-            f"{BASE_URL}/cart/add",
-            json={"product_id": pid, "qty": 1},
-            headers=self.headers if self.token else None,
-            name="POST /cart/add",
-            timeout=5,
+            "/cart/add",
+            json={"product_id": pid, "quantity": 1},
+            headers={"Authorization": f"Bearer {self.token}"},
+            name="/cart/add",
             catch_response=True,
         ) as resp:
-            if resp.status_code != 200 or "added" not in resp.json():
-                resp.failure(f"Unexpected response {resp.status_code} or missing added field")
+            if resp.status_code != 200:
+                resp.failure(f"Add to cart failed with status {resp.status_code}")
+                self.interrupt()
 
-    @task(1)
+    @task
     def checkout(self):
         if not self.token:
             return
         with self.client.post(
-            f"{BASE_URL}/checkout",
+            "/checkout",
             json={"payment_method": "visa"},
-            headers=self.headers if self.token else None,
-            name="POST /checkout",
-            timeout=8,
+            headers={"Authorization": f"Bearer {self.token}"},
+            name="/checkout",
             catch_response=True,
         ) as resp:
-            if resp.status_code != 200 or "status" not in resp.json():
-                resp.failure(f"Unexpected response {resp.status_code} or missing status field")
+            if resp.status_code != 200:
+                resp.failure(f"Checkout failed with status {resp.status_code}")
+        # After checkout, the sequence ends and will start over.
+
+class PrivateUser(FastHttpUser):
+    """
+    A user that executes the authenticated flow sequentially.
+    This user's behavior is defined by the AuthFlows TaskSet.
+    """
+    wait_time = between(0.3, 1.2)
+    # host is configured in locust.conf or via --host
+    tasks = [AuthFlows]

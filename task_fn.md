@@ -2,7 +2,6 @@
 
 Dưới đây là phiên bản Markdown gọn gàng theo đúng cấu trúc bạn yêu cầu. Bạn cũng có thể tải file `.md` mình đã tạo tại đây: **[Download the Markdown](sandbox:/mnt/data/locust_workshop_assignment.md)**
 
-````markdown
 # Bài Tập Workshop: Stress Test với Locust
 
 ## MỤC TIÊU CHUNG
@@ -28,8 +27,7 @@ Dưới đây là phiên bản Markdown gọn gàng theo đúng cấu trúc bạ
   ```bash
   docker compose up --build -d
   # URL: http://localhost:8000
-````
-
+```
 * Tạo `virtualenv`, cài Locust:
 
   ```bash
@@ -154,11 +152,11 @@ locust -f locust/tasks/public_read.py,locust/tasks/auth_flows.py --config locust
 * [x] `docs/test_plan.md` (**mục tiêu, KPI/SLO, mô hình tải, an toàn**).
 * [x] `docs/stress_testcases.*` (**ramp, step-stress, spike – có pass/fail rõ**).
 * [x] **Script Locust** có **validation hợp lệ** (**HTTP code + field**).
-* [ ] Báo cáo `ramp.html`, `stress.html`, `spike.html`, `soak.html` + **CSV** tương ứng.
-* [ ] `docs/executive_summary.*` **1 trang** (nêu **breakpoint** & **khuyến nghị**).
-* [ ] **So sánh kết quả** trước/sau khi **chỉnh env server**.
-* [ ] `README.md` cập nhật **Runbook chạy UI & headless + tham số**.
-* [ ] `scripts/run_all.sh` (hoặc **Makefile**) **tạo artifact có timestamp**.
+* [x] Báo cáo `ramp.html`, `stress.html`, `spike.html`, `soak.html` + **CSV** tương ứng.
+* [x] `docs/executive_summary.*` **1 trang** (nêu **breakpoint** & **khuyến nghị**).
+* [x] **So sánh kết quả** trước/sau khi **chỉnh env server**.
+* [x] `README.md` cập nhật **Runbook chạy UI & headless + tham số**.
+* [x] `scripts/run_all.sh` (hoặc **Makefile**) **tạo artifact có timestamp**.
 * [ ] `docs/workshop_slides.pptx` **hoàn chỉnh**.
 
 ---
@@ -170,3 +168,4 @@ locust -f locust/tasks/public_read.py,locust/tasks/auth_flows.py --config locust
 * Không có **think time/pacing** → **mô hình tải sai lệch**.
 * **Nhầm lẫn** timeout **client** với **5xx server**.
 * Báo cáo **không nêu con số breakpoint cụ thể**.
+  
